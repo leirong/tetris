@@ -84,6 +84,7 @@ class Tetris {
     this.shapeColor = "#000"
     this.ctx = this.canvas.getContext("2d")
     this.blockSize = 20
+    this.left = 120
     this.shapes = [
       new TShape(),
       new SShape(),
@@ -137,7 +138,7 @@ class Tetris {
     // 旋转过后需要判断是否超出了画布
     let flag = true
     for (let i = 0; i < newShape.length; i++) {
-      let x = newShape[i][0] * this.blockSize + 160 + this.moveX
+      let x = newShape[i][0] * this.blockSize + this.left + this.moveX
       let y = newShape[i][1] * this.blockSize + this.moveY
       if (
         this.blocks?.[y / this.blockSize] === undefined ||
@@ -260,7 +261,7 @@ class Tetris {
   drawShape() {
     const { shape } = this.currentShape
     for (let i = 0; i < shape.length; i++) {
-      let x = shape[i][0] * this.blockSize + 160 + this.moveX
+      let x = shape[i][0] * this.blockSize + this.left + this.moveX
       let y = shape[i][1] * this.blockSize + this.moveY
       this.drawRect(x, y, this.shapeColor, this.shapeColor)
 
@@ -276,7 +277,7 @@ class Tetris {
   clearShape() {
     const { shape } = this.currentShape
     for (let i = 0; i < shape.length; i++) {
-      let x = shape[i][0] * this.blockSize + 160 + this.moveX
+      let x = shape[i][0] * this.blockSize + this.left + this.moveX
       let y = shape[i][1] * this.blockSize + this.moveY
       this.ctx.fillStyle = this.bgColor
       this.ctx.fillRect(x + 1, y + 1, this.blockSize - 2, this.blockSize - 2)
@@ -288,19 +289,21 @@ class Tetris {
   checkLeft() {
     let flag = false
     const xIsOutside = this.currentShape.shape.find(
-      ([x]) => x * this.blockSize + 160 + this.moveX - this.blockSize < 0
+      ([x]) => x * this.blockSize + this.left + this.moveX - this.blockSize < 0
     )
     if (xIsOutside) {
       flag = true
     }
     const xy = this.currentShape.shape.map(([x, y]) => {
       const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex = (x * this.blockSize + 160 + this.moveX) / this.blockSize
+      const yIndex =
+        (x * this.blockSize + this.left + this.moveX) / this.blockSize
       return [xIndex, yIndex]
     })
     const yIsEnd = this.currentShape.shape.find(([x, y]) => {
       const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex = (x * this.blockSize + 160 + this.moveX) / this.blockSize
+      const yIndex =
+        (x * this.blockSize + this.left + this.moveX) / this.blockSize
       if (
         this.blocks[xIndex]?.[yIndex - 1] === undefined ||
         (this.blocks[xIndex][yIndex - 1] === 1 &&
@@ -318,7 +321,7 @@ class Tetris {
     let flag = false
     const xIsOutside = this.currentShape.shape.find(
       ([x]) =>
-        x * this.blockSize + 160 + this.moveX + this.blockSize >=
+        x * this.blockSize + this.left + this.moveX + this.blockSize >=
         this.canvas.width
     )
     if (xIsOutside) {
@@ -326,12 +329,14 @@ class Tetris {
     }
     const xy = this.currentShape.shape.map(([x, y]) => {
       const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex = (x * this.blockSize + 160 + this.moveX) / this.blockSize
+      const yIndex =
+        (x * this.blockSize + this.left + this.moveX) / this.blockSize
       return [xIndex, yIndex]
     })
     const yIsEnd = this.currentShape.shape.find(([x, y]) => {
       const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex = (x * this.blockSize + 160 + this.moveX) / this.blockSize
+      const yIndex =
+        (x * this.blockSize + this.left + this.moveX) / this.blockSize
       if (
         this.blocks[xIndex]?.[yIndex + 1] === undefined ||
         (this.blocks[xIndex][yIndex + 1] === 1 &&
@@ -357,13 +362,15 @@ class Tetris {
     }
     const xy = this.currentShape.shape.map(([x, y]) => {
       const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex = (x * this.blockSize + 160 + this.moveX) / this.blockSize
+      const yIndex =
+        (x * this.blockSize + this.left + this.moveX) / this.blockSize
       return [xIndex, yIndex]
     })
 
     const yIsEnd = this.currentShape.shape.find(([x, y]) => {
       const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex = (x * this.blockSize + 160 + this.moveX) / this.blockSize
+      const yIndex =
+        (x * this.blockSize + this.left + this.moveX) / this.blockSize
       if (
         this.blocks[xIndex + 1]?.[yIndex] === undefined ||
         (this.blocks[xIndex + 1][yIndex] === 1 &&
