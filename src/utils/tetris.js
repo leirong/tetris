@@ -1,12 +1,11 @@
 class TShape {
   constructor() {
     this.shape = [
-      [0, 0],
-      [1, 0],
-      [2, 0],
+      [0, 1],
       [1, 1],
+      [2, 1],
+      [1, 2],
     ]
-    this.color = "blue"
   }
 }
 
@@ -18,7 +17,6 @@ class SShape {
       [0, 1],
       [1, 1],
     ]
-    this.color = "red"
   }
 }
 
@@ -30,7 +28,6 @@ class ZShape {
       [1, 1],
       [2, 1],
     ]
-    this.color = "purple"
   }
 }
 
@@ -42,31 +39,28 @@ class OShape {
       [0, 1],
       [1, 1],
     ]
-    this.color = "green"
   }
 }
 
 class IShape {
   constructor() {
     this.shape = [
-      [0, 0],
-      [1, 0],
-      [2, 0],
-      [3, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1],
     ]
-    this.color = "brown"
   }
 }
 
 class LShape {
   constructor() {
     this.shape = [
-      [0, 0],
-      [0, 1],
-      [0, 2],
+      [1, 0],
+      [1, 1],
       [1, 2],
+      [2, 2],
     ]
-    this.color = "teal"
   }
 }
 
@@ -78,7 +72,6 @@ class JShape {
       [1, 2],
       [0, 2],
     ]
-    this.color = "orange"
   }
 }
 class Tetris {
@@ -86,6 +79,9 @@ class Tetris {
     this.canvas = document.getElementById(element)
     this.canvas.width = 300
     this.canvas.height = 500
+    this.bgColor = "#9ead86"
+    this.emptyShapeColor = "#879372"
+    this.shapeColor = "#000"
     this.ctx = this.canvas.getContext("2d")
     this.blockSize = 20
     this.shapes = [
@@ -105,7 +101,7 @@ class Tetris {
     this.blocks = Array(this.canvas.height / this.blockSize)
       .fill(0)
       .map(() => Array(this.canvas.width / this.blockSize).fill(0))
-    this.ctx.fillStyle = "white"
+    this.ctx.fillStyle = this.bgColor
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
     this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height)
     this.drawGrid()
@@ -129,11 +125,14 @@ class Tetris {
     requestAnimationFrame(this.animate.bind(this))
   }
 
+  /**
+   * 逆时针旋转90度
+   */
+
   rotate() {
-    console.log("this.currentShape :>> ", this.currentShape)
     const newShape = this.currentShape.shape.map(([x, y]) => [
-      this.getMaxX() - y,
-      x,
+      y,
+      this.getMax() - x,
     ])
     // 旋转过后需要判断是否超出了画布
     let flag = true
@@ -153,15 +152,13 @@ class Tetris {
     }
   }
 
-  getMaxX() {
-    let maxX = 0
+  getMax() {
+    let max = 0
     for (let index = 0; index < this.currentShape.shape.length; index++) {
-      const [x] = this.currentShape.shape[index]
-      if (x > maxX) {
-        maxX = x
-      }
+      const [x, y] = this.currentShape.shape[index]
+      max = Math.max(max, x, y)
     }
-    return maxX
+    return max
   }
 
   keydown(e) {
@@ -219,13 +216,18 @@ class Tetris {
     for (let x = this.blocks.length - 1; x >= 0; x--) {
       for (let y = 0; y < this.blocks[x].length; y++) {
         if (needDeleteIndexArr.includes(x)) {
-          this.ctx.fillStyle = "white"
-          this.ctx.globalAlpha = 1
+          this.ctx.fillStyle = this.bgColor
           this.ctx.fillRect(
             y * this.blockSize + 1,
             x * this.blockSize + 1,
             this.blockSize - 2,
             this.blockSize - 2
+          )
+          this.drawRect(
+            y * this.blockSize,
+            x * this.blockSize,
+            this.emptyShapeColor,
+            this.emptyShapeColor
           )
           this.blocks[x][y] = 0
         }
@@ -233,27 +235,19 @@ class Tetris {
     }
   }
 
-  drawGrid() {
-    for (let x = this.blockSize; x < this.canvas.width; x += this.blockSize) {
-      this.ctx.beginPath()
-      this.ctx.globalAlpha = 0.2
-      this.ctx.fillStyle = "#000000"
-      this.ctx.moveTo(x, 0)
-      this.ctx.lineTo(x, this.canvas.height)
-      this.ctx.lineWidth = 1
-      this.ctx.stroke()
-      this.ctx.closePath()
-    }
+  drawRect(x, y, borderColor, contentColor) {
+    this.ctx.strokeStyle = borderColor
+    this.ctx.strokeRect(x + 2, y + 2, this.blockSize - 4, this.blockSize - 4)
 
-    for (let y = this.blockSize; y < this.canvas.height; y += this.blockSize) {
-      this.ctx.beginPath()
-      this.ctx.globalAlpha = 0.2
-      this.ctx.fillStyle = "#000000"
-      this.ctx.moveTo(0, y)
-      this.ctx.lineTo(this.canvas.width, y)
-      this.ctx.lineWidth = 1
-      this.ctx.stroke()
-      this.ctx.closePath()
+    this.ctx.fillStyle = contentColor
+    this.ctx.fillRect(x + 5, y + 5, this.blockSize - 10, this.blockSize - 10)
+  }
+
+  drawGrid() {
+    for (let x = 0; x < this.canvas.width; x += this.blockSize) {
+      for (let y = 0; y < this.canvas.height; y += this.blockSize) {
+        this.drawRect(x, y, this.emptyShapeColor, this.emptyShapeColor)
+      }
     }
   }
 
@@ -264,13 +258,12 @@ class Tetris {
   }
 
   drawShape() {
-    const { shape, color } = this.currentShape
+    const { shape } = this.currentShape
     for (let i = 0; i < shape.length; i++) {
       let x = shape[i][0] * this.blockSize + 160 + this.moveX
       let y = shape[i][1] * this.blockSize + this.moveY
-      this.ctx.fillStyle = color
-      this.ctx.globalAlpha = 1
-      this.ctx.fillRect(x + 1, y + 1, this.blockSize - 2, this.blockSize - 2)
+      this.drawRect(x, y, this.shapeColor, this.shapeColor)
+
       this.blocks[y / this.blockSize][x / this.blockSize] = 1
     }
     if (this.isGameOver()) {
@@ -285,9 +278,10 @@ class Tetris {
     for (let i = 0; i < shape.length; i++) {
       let x = shape[i][0] * this.blockSize + 160 + this.moveX
       let y = shape[i][1] * this.blockSize + this.moveY
-      this.ctx.fillStyle = "white"
-      this.ctx.globalAlpha = 1
+      this.ctx.fillStyle = this.bgColor
       this.ctx.fillRect(x + 1, y + 1, this.blockSize - 2, this.blockSize - 2)
+
+      this.drawRect(x, y, this.emptyShapeColor, this.emptyShapeColor)
       this.blocks[y / this.blockSize][x / this.blockSize] = 0
     }
   }
