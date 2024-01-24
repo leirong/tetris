@@ -117,13 +117,6 @@ class Tetris {
     this.animate()
   }
 
-  // redraw() {
-  //   this.ctx.fillStyle = this.bgColor
-  //   this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
-  //   this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height)
-  //   this.drawGrid()
-  // }
-
   clearDynamicBlocks() {
     this.dynamicBlocks = Array(this.canvas.height / this.blockSize)
       .fill(0)
@@ -214,6 +207,33 @@ class Tetris {
     }
   }
 
+  // 获取向下能移动的最大步数
+  getMaxMoveY() {
+    const all = []
+    for (let i = 0; i < this.dynamicBlocks.length; i++) {
+      for (let j = 0; j < this.dynamicBlocks[i].length; j++) {
+        if (this.dynamicBlocks[i][j]) {
+          all.push([i, j])
+        }
+      }
+    }
+    let max = 0
+    for (let index = 0; index < this.dynamicBlocks.length; index++) {
+      if (
+        all.some(
+          ([i, j]) =>
+            this.blocks?.[i + index]?.[j] === 1 ||
+            this.blocks?.[i + index]?.[j] === undefined
+        )
+      ) {
+        break
+      } else {
+        max++
+      }
+    }
+    return max - 1
+  }
+
   moveDown() {
     if (this.checkDown()) {
       console.log("已经到最下边了")
@@ -263,7 +283,7 @@ class Tetris {
     }
 
     // 消除行后，需要上面的块往下移动一个位置
-    needDeleteIndexArr.forEach(needDeleteIndex => {
+    needDeleteIndexArr.forEach((needDeleteIndex) => {
       for (let i = needDeleteIndex - 1; i >= 0; i--) {
         for (let j = 0; j < this.blocks[i].length; j++) {
           this.ctx.fillStyle = this.bgColor
@@ -274,9 +294,19 @@ class Tetris {
             this.blockSize - 2
           )
           if (this.blocks[i][j]) {
-            this.drawRect(j * this.blockSize, (i + 1) * this.blockSize, this.shapeColor, this.shapeColor)
+            this.drawRect(
+              j * this.blockSize,
+              (i + 1) * this.blockSize,
+              this.shapeColor,
+              this.shapeColor
+            )
           } else {
-            this.drawRect(j * this.blockSize, (i + 1) * this.blockSize, this.emptyShapeColor, this.emptyShapeColor)
+            this.drawRect(
+              j * this.blockSize,
+              (i + 1) * this.blockSize,
+              this.emptyShapeColor,
+              this.emptyShapeColor
+            )
           }
           this.blocks[i + 1][j] = this.blocks[i][j]
         }
@@ -314,6 +344,7 @@ class Tetris {
       this.drawRect(x, y, this.shapeColor, this.shapeColor)
       this.dynamicBlocks[y / this.blockSize][x / this.blockSize] = 1
     }
+    const maxMoveY = this.getMaxMoveY()
     if (this.isGameOver()) {
       alert("Game Over")
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
@@ -345,12 +376,9 @@ class Tetris {
     // 检查是否和别的方块重叠了
     outerLoop: for (let i = 0; i < this.dynamicBlocks.length; i++) {
       for (let j = 0; j < this.dynamicBlocks[i].length; j++) {
-        if (
-          this.dynamicBlocks[i][j] === 1 &&
-          this.blocks[i][j - 1] === 1
-        ) {
+        if (this.dynamicBlocks[i][j] === 1 && this.blocks[i][j - 1] === 1) {
           flag = true
-          break outerLoop;
+          break outerLoop
         }
       }
     }
@@ -368,12 +396,9 @@ class Tetris {
     // 检查是否和别的方块重叠了
     outerLoop: for (let i = 0; i < this.dynamicBlocks.length; i++) {
       for (let j = 0; j < this.dynamicBlocks[i].length; j++) {
-        if (
-          this.dynamicBlocks[i][j] === 1 &&
-          this.blocks[i][j + 1] === 1
-        ) {
+        if (this.dynamicBlocks[i][j] === 1 && this.blocks[i][j + 1] === 1) {
           flag = true
-          break outerLoop;
+          break outerLoop
         }
       }
     }
@@ -384,7 +409,9 @@ class Tetris {
     let flag = false
     // 检查是否超出了画布
     const yIsOutside = this.dynamicBlocks.some((item, index) => {
-      return index === this.dynamicBlocks.length - 1 && item.find((i) => i === 1)
+      return (
+        index === this.dynamicBlocks.length - 1 && item.find((i) => i === 1)
+      )
     })
     if (yIsOutside) {
       flag = true
@@ -393,11 +420,11 @@ class Tetris {
     outerLoop: for (let i = 0; i < this.dynamicBlocks.length; i++) {
       for (let j = 0; j < this.dynamicBlocks[i].length; j++) {
         if (
-          (this.dynamicBlocks[i][j] === 1 &&
-          this.blocks[i + 1][j] === 1) || yIsOutside
+          (this.dynamicBlocks[i][j] === 1 && this.blocks[i + 1][j] === 1) ||
+          yIsOutside
         ) {
           flag = true
-          break outerLoop;
+          break outerLoop
         }
       }
     }
