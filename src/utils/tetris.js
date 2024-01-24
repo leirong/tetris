@@ -102,6 +102,7 @@ class Tetris {
     this.blocks = Array(this.canvas.height / this.blockSize)
       .fill(0)
       .map(() => Array(this.canvas.width / this.blockSize).fill(0))
+    this.clearDynamicBlocks()
     this.ctx.fillStyle = this.bgColor
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
     this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height)
@@ -114,6 +115,29 @@ class Tetris {
     this.lastTime = 0
     this.interval = 0
     this.animate()
+  }
+
+  // redraw() {
+  //   this.ctx.fillStyle = this.bgColor
+  //   this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
+  //   this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height)
+  //   this.drawGrid()
+  // }
+
+  clearDynamicBlocks() {
+    this.dynamicBlocks = Array(this.canvas.height / this.blockSize)
+      .fill(0)
+      .map(() => Array(this.canvas.width / this.blockSize).fill(0))
+  }
+
+  mergeBlocks() {
+    this.dynamicBlocks.forEach((item, i) => {
+      item.forEach((value, j) => {
+        if (value) {
+          this.blocks[i][j] = 1
+        }
+      })
+    })
   }
 
   animate(time = 0) {
@@ -193,6 +217,9 @@ class Tetris {
   moveDown() {
     if (this.checkDown()) {
       console.log("已经到最下边了")
+      this.mergeBlocks()
+      this.clearDynamicBlocks()
+      this.deleteRow()
       this.moveX = 0
       this.moveY = 0
       this.currentShape = this.getRandomShape()
@@ -234,6 +261,27 @@ class Tetris {
         }
       }
     }
+
+    // 消除行后，需要上面的块往下移动一个位置
+    needDeleteIndexArr.forEach(needDeleteIndex => {
+      for (let i = needDeleteIndex - 1; i >= 0; i--) {
+        for (let j = 0; j < this.blocks[i].length; j++) {
+          this.ctx.fillStyle = this.bgColor
+          this.ctx.fillRect(
+            j * this.blockSize + 1,
+            (i + 1) * this.blockSize + 1,
+            this.blockSize - 2,
+            this.blockSize - 2
+          )
+          if (this.blocks[i][j]) {
+            this.drawRect(j * this.blockSize, (i + 1) * this.blockSize, this.shapeColor, this.shapeColor)
+          } else {
+            this.drawRect(j * this.blockSize, (i + 1) * this.blockSize, this.emptyShapeColor, this.emptyShapeColor)
+          }
+          this.blocks[i + 1][j] = this.blocks[i][j]
+        }
+      }
+    })
   }
 
   drawRect(x, y, borderColor, contentColor) {
@@ -264,15 +312,13 @@ class Tetris {
       let x = shape[i][0] * this.blockSize + this.left + this.moveX
       let y = shape[i][1] * this.blockSize + this.moveY
       this.drawRect(x, y, this.shapeColor, this.shapeColor)
-
-      this.blocks[y / this.blockSize][x / this.blockSize] = 1
+      this.dynamicBlocks[y / this.blockSize][x / this.blockSize] = 1
     }
     if (this.isGameOver()) {
       alert("Game Over")
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
       this.init()
     }
-    this.deleteRow()
   }
   clearShape() {
     const { shape } = this.currentShape
@@ -283,104 +329,77 @@ class Tetris {
       this.ctx.fillRect(x + 1, y + 1, this.blockSize - 2, this.blockSize - 2)
 
       this.drawRect(x, y, this.emptyShapeColor, this.emptyShapeColor)
-      this.blocks[y / this.blockSize][x / this.blockSize] = 0
+      this.dynamicBlocks[y / this.blockSize][x / this.blockSize] = 0
     }
   }
   checkLeft() {
     let flag = false
-    const xIsOutside = this.currentShape.shape.find(
-      ([x]) => x * this.blockSize + this.left + this.moveX - this.blockSize < 0
-    )
+    // 检查是否超出了画布
+    const xIsOutside = this.dynamicBlocks.some((item) => {
+      return item[0] === 1
+    })
     if (xIsOutside) {
       flag = true
     }
-    const xy = this.currentShape.shape.map(([x, y]) => {
-      const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex =
-        (x * this.blockSize + this.left + this.moveX) / this.blockSize
-      return [xIndex, yIndex]
-    })
-    const yIsEnd = this.currentShape.shape.find(([x, y]) => {
-      const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex =
-        (x * this.blockSize + this.left + this.moveX) / this.blockSize
-      if (
-        this.blocks[xIndex]?.[yIndex - 1] === undefined ||
-        (this.blocks[xIndex][yIndex - 1] === 1 &&
-          !xy.find(([xx, yy]) => xIndex === xx && yIndex - 1 === yy))
-      ) {
-        return true
+
+    // 检查是否和别的方块重叠了
+    outerLoop: for (let i = 0; i < this.dynamicBlocks.length; i++) {
+      for (let j = 0; j < this.dynamicBlocks[i].length; j++) {
+        if (
+          this.dynamicBlocks[i][j] === 1 &&
+          this.blocks[i][j - 1] === 1
+        ) {
+          flag = true
+          break outerLoop;
+        }
       }
-    })
-    if (yIsEnd) {
-      flag = true
     }
     return flag
   }
   checkRight() {
     let flag = false
-    const xIsOutside = this.currentShape.shape.find(
-      ([x]) =>
-        x * this.blockSize + this.left + this.moveX + this.blockSize >=
-        this.canvas.width
-    )
+    // 检查是否超出了画布
+    const xIsOutside = this.dynamicBlocks.some((item) => {
+      return item[item.length - 1] === 1
+    })
     if (xIsOutside) {
       flag = true
     }
-    const xy = this.currentShape.shape.map(([x, y]) => {
-      const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex =
-        (x * this.blockSize + this.left + this.moveX) / this.blockSize
-      return [xIndex, yIndex]
-    })
-    const yIsEnd = this.currentShape.shape.find(([x, y]) => {
-      const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex =
-        (x * this.blockSize + this.left + this.moveX) / this.blockSize
-      if (
-        this.blocks[xIndex]?.[yIndex + 1] === undefined ||
-        (this.blocks[xIndex][yIndex + 1] === 1 &&
-          !xy.find(([xx, yy]) => xIndex === xx && yIndex + 1 === yy))
-      ) {
-        return true
+    // 检查是否和别的方块重叠了
+    outerLoop: for (let i = 0; i < this.dynamicBlocks.length; i++) {
+      for (let j = 0; j < this.dynamicBlocks[i].length; j++) {
+        if (
+          this.dynamicBlocks[i][j] === 1 &&
+          this.blocks[i][j + 1] === 1
+        ) {
+          flag = true
+          break outerLoop;
+        }
       }
-    })
-    if (yIsEnd) {
-      flag = true
     }
     return flag
   }
 
   checkDown() {
     let flag = false
-    const yIsOutside = this.currentShape.shape.find(
-      ([, y]) =>
-        y * this.blockSize + this.moveY + this.blockSize >= this.canvas.height
-    )
+    // 检查是否超出了画布
+    const yIsOutside = this.dynamicBlocks.some((item, index) => {
+      return index === this.dynamicBlocks.length - 1 && item.find((i) => i === 1)
+    })
     if (yIsOutside) {
       flag = true
     }
-    const xy = this.currentShape.shape.map(([x, y]) => {
-      const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex =
-        (x * this.blockSize + this.left + this.moveX) / this.blockSize
-      return [xIndex, yIndex]
-    })
-
-    const yIsEnd = this.currentShape.shape.find(([x, y]) => {
-      const xIndex = (y * this.blockSize + this.moveY) / this.blockSize
-      const yIndex =
-        (x * this.blockSize + this.left + this.moveX) / this.blockSize
-      if (
-        this.blocks[xIndex + 1]?.[yIndex] === undefined ||
-        (this.blocks[xIndex + 1][yIndex] === 1 &&
-          !xy.find(([xx, yy]) => xIndex + 1 === xx && yIndex === yy))
-      ) {
-        return true
+    // 检查是否和别的方块重叠了
+    outerLoop: for (let i = 0; i < this.dynamicBlocks.length; i++) {
+      for (let j = 0; j < this.dynamicBlocks[i].length; j++) {
+        if (
+          (this.dynamicBlocks[i][j] === 1 &&
+          this.blocks[i + 1][j] === 1) || yIsOutside
+        ) {
+          flag = true
+          break outerLoop;
+        }
       }
-    })
-    if (yIsEnd) {
-      flag = true
     }
     return flag
   }
