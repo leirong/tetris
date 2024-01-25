@@ -81,6 +81,7 @@ class Tetris {
     this.canvas.height = 500
     this.bgColor = "#9ead86"
     this.emptyShapeColor = "#879372"
+    this.previewShapeColor = "#00000060"
     this.shapeColor = "#000"
     this.ctx = this.canvas.getContext("2d")
     this.blockSize = 20
@@ -94,6 +95,7 @@ class Tetris {
       new JShape(),
       new OShape(),
     ]
+    this.maxMoveY = 0
     this.init()
     document.addEventListener("keydown", this.keydown.bind(this))
   }
@@ -179,6 +181,15 @@ class Tetris {
     return max
   }
 
+  getMaY() {
+    let maxY = 0
+    for (let index = 0; index < this.currentShape.shape.length; index++) {
+      const [, y] = this.currentShape.shape[index]
+      maxY = Math.max(maxY, y)
+    }
+    return maxY
+  }
+
   keydown(e) {
     if (e.key === "ArrowLeft") {
       if (this.checkLeft()) {
@@ -203,7 +214,7 @@ class Tetris {
       this.rotate()
       this.drawShape()
     } else if (e.key === " ") {
-      console.log("空格 :>> ")
+      this.fastMoveDown()
     }
   }
 
@@ -231,8 +242,12 @@ class Tetris {
         max++
       }
     }
-    return max - 1
+    return max - 1 < 0 ? 0 : max - 1
   }
+
+  /**
+   * 向下移动
+   */
 
   moveDown() {
     if (this.checkDown()) {
@@ -248,6 +263,35 @@ class Tetris {
     }
     this.clearShape()
     this.moveY += this.blockSize
+    this.drawShape()
+  }
+
+  /**
+   * 快速向下移动
+   */
+  
+  fastMoveDown() {
+    this.dynamicBlocks.forEach((item, i) => {
+      item.forEach((value, j) => {
+        if (value) {
+          this.dynamicBlocks[i][j] = 0
+          this.blocks[i + this.maxMoveY][j] = 1
+        }
+      })
+    })
+    if (this.checkDown()) {
+      console.log("已经到最下边了")
+      this.mergeBlocks()
+      this.clearDynamicBlocks()
+      this.deleteRow()
+      this.moveX = 0
+      this.moveY = 0
+      this.currentShape = this.getRandomShape()
+      this.drawShape()
+      return
+    }
+    this.clearShape()
+    this.moveY += this.blockSize * this.maxMoveY
     this.drawShape()
   }
 
@@ -336,6 +380,63 @@ class Tetris {
     return randomShape
   }
 
+  drawPreview() {
+    const notClearIndexArr = []
+    this.dynamicBlocks.forEach((item, i) => {
+      item.forEach((item2, j) => {
+        if (this.blocks[i][j] === 1 || this.dynamicBlocks[i][j] === 1) {
+          notClearIndexArr.push([i, j])
+        }
+        if (item2 === 1) {
+          notClearIndexArr.push([i + this.maxMoveY, j])
+        }
+      })
+    })
+
+    this.dynamicBlocks.forEach((item, i) => {
+      item.forEach((item2, j) => {
+        if (!notClearIndexArr.find(([ii, jj]) => i === ii && j === jj)) {
+          this.ctx.fillStyle = this.bgColor
+          this.ctx.fillRect(
+            j * this.blockSize + 1,
+            i * this.blockSize + 1,
+            this.blockSize - 2,
+            this.blockSize - 2
+          )
+          this.drawRect(
+            j * this.blockSize,
+            i * this.blockSize,
+            this.emptyShapeColor,
+            this.emptyShapeColor
+          )
+        }
+      })
+    })
+
+    this.dynamicBlocks.forEach((item, i) => {
+      item.forEach((item2, j) => {
+        if (item2 === 1) {
+          if (this.maxMoveY > this.getMaY()) {
+            this.ctx.fillStyle = this.bgColor
+            this.ctx.fillRect(
+              j * this.blockSize + 1,
+              (i + this.maxMoveY) * this.blockSize + 1,
+              this.blockSize - 2,
+              this.blockSize - 2
+            )
+            
+            this.drawRect(
+              j * this.blockSize,
+              (i + this.maxMoveY) * this.blockSize,
+              this.previewShapeColor,
+              this.previewShapeColor
+            )
+          }
+        }
+      })
+    })
+  }
+
   drawShape() {
     const { shape } = this.currentShape
     for (let i = 0; i < shape.length; i++) {
@@ -344,7 +445,8 @@ class Tetris {
       this.drawRect(x, y, this.shapeColor, this.shapeColor)
       this.dynamicBlocks[y / this.blockSize][x / this.blockSize] = 1
     }
-    const maxMoveY = this.getMaxMoveY()
+    this.maxMoveY = this.getMaxMoveY()
+    this.drawPreview()
     if (this.isGameOver()) {
       alert("Game Over")
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
