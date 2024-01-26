@@ -14,7 +14,7 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    margin: -480px 0 0 -320px;
+    transform: translate(-50%, -50%);
     background: #efcc19;
 
     canvas {
@@ -298,8 +298,6 @@
         height: 100%;
         padding-top: calc((100vh - 730px) / 2);
         margin: 0;
-        top: 0;
-        left: 0;
 
         section {
             height: mpx2vw(330);
@@ -310,6 +308,7 @@
             width: mpx2vw(160);
             height: mpx2vw(160);
             line-height: mpx2vw(160);
+            font-size: 3vw;
         }
 
         .description {
