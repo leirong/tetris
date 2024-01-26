@@ -8,7 +8,7 @@ function App() {
   const tetris = useRef<Tetris>();
   useEffect(() => {
     tetris.current = new Tetris("tetris");
-    window.addEventListener("resize", (e) => {
+    window.addEventListener("resize", () => {
       const width = document.body.clientWidth;
       if (width <= 200) {
         setScale(width / 200);
