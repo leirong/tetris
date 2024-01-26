@@ -1,4 +1,12 @@
 declare module "@/utils/tetris.js" {
-  const Tetris: (element: string) => void
-  export default Tetris
+  export default Tetris;
 }
+
+// interface TetrisInstance {
+//   constructor: (element: string) => void;
+//   fastMoveDown: () => void;
+//   rotate: () => void;
+//   moveLeft: () => void;
+//   moveRight: () => void;
+//   moveDown: () => void;
+// }

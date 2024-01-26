@@ -77,8 +77,10 @@ class JShape {
 class Tetris {
   constructor(element) {
     this.canvas = document.getElementById(element)
-    this.canvas.width = 300
-    this.canvas.height = 500
+    this.width = 200
+    this.height = 400
+    this.canvas.width = this.width
+    this.canvas.height = this.height
     this.bgColor = "#9ead86"
     this.emptyShapeColor = "#879372"
     this.previewShapeColor = "#00000060"
@@ -101,13 +103,13 @@ class Tetris {
   }
 
   init() {
-    this.blocks = Array(this.canvas.height / this.blockSize)
+    this.blocks = Array(this.height / this.blockSize)
       .fill(0)
-      .map(() => Array(this.canvas.width / this.blockSize).fill(0))
+      .map(() => Array(this.width / this.blockSize).fill(0))
     this.clearDynamicBlocks()
     this.ctx.fillStyle = this.bgColor
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
-    this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height)
+    this.ctx.fillRect(0, 0, this.width, this.height)
+    this.ctx.strokeRect(0, 0, this.width, this.height)
     this.drawGrid()
     this.moveX = 0
     this.moveY = 0
@@ -120,9 +122,9 @@ class Tetris {
   }
 
   clearDynamicBlocks() {
-    this.dynamicBlocks = Array(this.canvas.height / this.blockSize)
+    this.dynamicBlocks = Array(this.height / this.blockSize)
       .fill(0)
-      .map(() => Array(this.canvas.width / this.blockSize).fill(0))
+      .map(() => Array(this.width / this.blockSize).fill(0))
   }
 
   mergeBlocks() {
@@ -150,6 +152,7 @@ class Tetris {
    */
 
   rotate() {
+    this.clearShape()
     const newShape = this.currentShape.shape.map(([x, y]) => [
       y,
       this.getMax() - x,
@@ -170,6 +173,7 @@ class Tetris {
     if (flag) {
       this.currentShape.shape = newShape
     }
+    this.drawShape()
   }
 
   getMax() {
@@ -192,27 +196,13 @@ class Tetris {
 
   keydown(e) {
     if (e.key === "ArrowLeft") {
-      if (this.checkLeft()) {
-        console.log("已经到最左边了")
-        return
-      }
-      this.clearShape()
-      this.moveX -= this.blockSize
-      this.drawShape()
+      this.moveLeft()
     } else if (e.key === "ArrowRight") {
-      if (this.checkRight()) {
-        console.log("已经到最右边了")
-        return
-      }
-      this.clearShape()
-      this.moveX += this.blockSize
-      this.drawShape()
+      this.moveRight()
     } else if (e.key === "ArrowDown") {
       this.moveDown()
     } else if (e.key === "ArrowUp") {
-      this.clearShape()
       this.rotate()
-      this.drawShape()
     } else if (e.key === " ") {
       this.fastMoveDown()
     }
@@ -243,6 +233,34 @@ class Tetris {
       }
     }
     return max - 1 < 0 ? 0 : max - 1
+  }
+
+  /**
+   * 向左移动
+   */
+
+  moveLeft() {
+    if (this.checkLeft()) {
+      console.log("已经到最左边了")
+      return
+    }
+    this.clearShape()
+    this.moveX -= this.blockSize
+    this.drawShape()
+  }
+
+  /**
+   * 向右移动
+   */
+
+  moveRight() {
+    if (this.checkRight()) {
+      console.log("已经到最右边了")
+      return
+    }
+    this.clearShape()
+    this.moveX += this.blockSize
+    this.drawShape()
   }
 
   /**
@@ -367,8 +385,8 @@ class Tetris {
   }
 
   drawGrid() {
-    for (let x = 0; x < this.canvas.width; x += this.blockSize) {
-      for (let y = 0; y < this.canvas.height; y += this.blockSize) {
+    for (let x = 0; x < this.width; x += this.blockSize) {
+      for (let y = 0; y < this.height; y += this.blockSize) {
         this.drawRect(x, y, this.emptyShapeColor, this.emptyShapeColor)
       }
     }
@@ -449,7 +467,7 @@ class Tetris {
     this.drawPreview()
     if (this.isGameOver()) {
       alert("Game Over")
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+      this.ctx.clearRect(0, 0, this.width, this.height)
       this.init()
     }
   }
