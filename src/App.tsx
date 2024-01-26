@@ -57,8 +57,75 @@ function App() {
   };
   const onDownMouseUp = () => {
     setDownIsMouseDown(false);
-    tetris.current?.moveDown();
+    tetris.current?.moveDown(true);
   };
+
+  const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints;
+
+  let fastMoveProps = {};
+  if (isTouchDevice) {
+    fastMoveProps = {
+      onTouchStart: onDropMouseDown,
+      onTouchEnd: onDropMouseUp,
+    };
+  } else {
+    fastMoveProps = {
+      onMouseDown: onDropMouseDown,
+      onMouseUp: onDropMouseUp,
+    };
+  }
+
+  let upProps = {};
+  if (isTouchDevice) {
+    upProps = {
+      onTouchStart: onUpMouseDown,
+      onTouchEnd: onUpMouseUp,
+    };
+  } else {
+    upProps = {
+      onMouseDown: onUpMouseDown,
+      onMouseUp: onUpMouseUp,
+    };
+  }
+
+  let leftProps = {};
+  if (isTouchDevice) {
+    leftProps = {
+      onTouchStart: onLeftMouseDown,
+      onTouchEnd: onLeftMouseUp,
+    };
+  } else {
+    leftProps = {
+      onMouseDown: onLeftMouseDown,
+      onMouseUp: onLeftMouseUp,
+    };
+  }
+
+  let rightProps = {};
+  if (isTouchDevice) {
+    rightProps = {
+      onTouchStart: onRightMouseDown,
+      onTouchEnd: onRightMouseUp,
+    };
+  } else {
+    rightProps = {
+      onMouseDown: onRightMouseDown,
+      onMouseUp: onRightMouseUp,
+    };
+  }
+
+  let downProps = {};
+  if (isTouchDevice) {
+    downProps = {
+      onTouchStart: onDownMouseDown,
+      onTouchEnd: onDownMouseUp,
+    };
+  } else {
+    downProps = {
+      onMouseDown: onDownMouseDown,
+      onMouseUp: onDownMouseUp,
+    };
+  }
 
   return (
     <div className="container">
@@ -66,8 +133,7 @@ function App() {
       <section>
         <div
           className={classnames("fast-move", { down: dropIsMouseDown })}
-          onMouseDown={onDropMouseDown}
-          onMouseUp={onDropMouseUp}
+          {...fastMoveProps}
         >
           Drop
         </div>
@@ -75,8 +141,7 @@ function App() {
           <div className="up-w">
             <span
               className={classnames("up", { down: upIsMouseDown })}
-              onMouseDown={onUpMouseDown}
-              onMouseUp={onUpMouseUp}
+              {...upProps}
             >
               Rotation
             </span>
@@ -84,8 +149,7 @@ function App() {
           <div className="left-w">
             <span
               className={classnames("move-left", { down: leftIsMouseDown })}
-              onMouseDown={onLeftMouseDown}
-              onMouseUp={onLeftMouseUp}
+              {...leftProps}
             >
               Left
             </span>
@@ -93,8 +157,7 @@ function App() {
           <div className="right-w">
             <span
               className={classnames("move-right", { down: rightIsMouseDown })}
-              onMouseDown={onRightMouseDown}
-              onMouseUp={onRightMouseUp}
+              {...rightProps}
             >
               Right
             </span>
@@ -102,8 +165,7 @@ function App() {
           <div className="down-w">
             <span
               className={classnames("move-down", { down: downIsMouseDown })}
-              onMouseDown={onDownMouseDown}
-              onMouseUp={onDownMouseUp}
+              {...downProps}
             >
               Down
             </span>

@@ -1,3 +1,4 @@
+import Music from './music'
 class TShape {
   constructor() {
     this.shape = [
@@ -87,7 +88,7 @@ class Tetris {
     this.shapeColor = "#000"
     this.ctx = this.canvas.getContext("2d")
     this.blockSize = 20
-    this.left = 120
+    this.left = 80
     this.shapes = [
       new TShape(),
       new SShape(),
@@ -100,6 +101,13 @@ class Tetris {
     this.maxMoveY = 0
     this.init()
     document.addEventListener("keydown", this.keydown.bind(this))
+    document.addEventListener("click", () => {
+      if (this.music) {
+        return
+      }
+      this.music = new Music()
+      this.musicType = this.music.getType()
+    })
   }
 
   init() {
@@ -152,6 +160,7 @@ class Tetris {
    */
 
   rotate() {
+    console.log('1', 1)
     this.clearShape()
     const newShape = this.currentShape.shape.map(([x, y]) => [
       y,
@@ -174,6 +183,7 @@ class Tetris {
       this.currentShape.shape = newShape
     }
     this.drawShape()
+    this.music?.play(this.musicType.rotate)
   }
 
   getMax() {
@@ -247,6 +257,7 @@ class Tetris {
     this.clearShape()
     this.moveX -= this.blockSize
     this.drawShape()
+    this.music?.play(this.musicType.move)
   }
 
   /**
@@ -261,13 +272,14 @@ class Tetris {
     this.clearShape()
     this.moveX += this.blockSize
     this.drawShape()
+    this.music?.play(this.musicType.move)
   }
 
   /**
    * 向下移动
    */
 
-  moveDown() {
+  moveDown(playMusic = false) {
     if (this.checkDown()) {
       console.log("已经到最下边了")
       this.mergeBlocks()
@@ -282,6 +294,7 @@ class Tetris {
     this.clearShape()
     this.moveY += this.blockSize
     this.drawShape()
+    playMusic && this.music?.play(this.musicType.move)
   }
 
   /**
@@ -311,6 +324,7 @@ class Tetris {
     this.clearShape()
     this.moveY += this.blockSize * this.maxMoveY
     this.drawShape()
+    this.music?.play(this.musicType.fastMove)
   }
 
   deleteRow() {
@@ -466,6 +480,7 @@ class Tetris {
     this.maxMoveY = this.getMaxMoveY()
     this.drawPreview()
     if (this.isGameOver()) {
+      this.music?.play(this.musicType.gameOver)
       alert("Game Over")
       this.ctx.clearRect(0, 0, this.width, this.height)
       this.init()
