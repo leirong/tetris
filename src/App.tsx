@@ -15,157 +15,56 @@ function App() {
       }
     });
   }, []);
-  const [dropIsMouseDown, setDropIsMouseDown] = useState(false);
-  const onDropMouseDown = () => {
-    setDropIsMouseDown(true);
-  };
-  const onDropMouseUp = () => {
-    setDropIsMouseDown(false);
-    tetris.current?.fastMoveDown();
-  };
 
-  const [upIsMouseDown, setUpIsMouseDown] = useState(false);
-  const onUpMouseDown = () => {
-    setUpIsMouseDown(true);
-  };
-  const onUpMouseUp = () => {
-    setUpIsMouseDown(false);
-    tetris.current?.rotate();
-  };
+  const fastMoveDown = () => tetris.current?.fastMoveDown()
 
-  const [leftIsMouseDown, setLeftIsMouseDown] = useState(false);
-  const onLeftMouseDown = () => {
-    setLeftIsMouseDown(true);
-  };
-  const onLeftMouseUp = () => {
-    setLeftIsMouseDown(false);
-    tetris.current?.moveLeft();
-  };
+  const rotate = () => tetris.current?.rotate()
 
-  const [rightIsMouseDown, setRightIsMouseDown] = useState(false);
-  const onRightMouseDown = () => {
-    setRightIsMouseDown(true);
-  };
-  const onRightMouseUp = () => {
-    setRightIsMouseDown(false);
-    tetris.current?.moveRight();
-  };
+  const moveLeft = () => tetris.current?.moveLeft();
 
-  const [downIsMouseDown, setDownIsMouseDown] = useState(false);
-  const onDownMouseDown = () => {
-    setDownIsMouseDown(true);
-  };
-  const onDownMouseUp = () => {
-    setDownIsMouseDown(false);
-    tetris.current?.moveDown(true);
-  };
+  const moveRight = () => tetris.current?.moveRight();
 
-  const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints;
-
-  let fastMoveProps = {};
-  if (isTouchDevice) {
-    fastMoveProps = {
-      onTouchStart: onDropMouseDown,
-      onTouchEnd: onDropMouseUp,
-    };
-  } else {
-    fastMoveProps = {
-      onMouseDown: onDropMouseDown,
-      onMouseUp: onDropMouseUp,
-    };
-  }
-
-  let upProps = {};
-  if (isTouchDevice) {
-    upProps = {
-      onTouchStart: onUpMouseDown,
-      onTouchEnd: onUpMouseUp,
-    };
-  } else {
-    upProps = {
-      onMouseDown: onUpMouseDown,
-      onMouseUp: onUpMouseUp,
-    };
-  }
-
-  let leftProps = {};
-  if (isTouchDevice) {
-    leftProps = {
-      onTouchStart: onLeftMouseDown,
-      onTouchEnd: onLeftMouseUp,
-    };
-  } else {
-    leftProps = {
-      onMouseDown: onLeftMouseDown,
-      onMouseUp: onLeftMouseUp,
-    };
-  }
-
-  let rightProps = {};
-  if (isTouchDevice) {
-    rightProps = {
-      onTouchStart: onRightMouseDown,
-      onTouchEnd: onRightMouseUp,
-    };
-  } else {
-    rightProps = {
-      onMouseDown: onRightMouseDown,
-      onMouseUp: onRightMouseUp,
-    };
-  }
-
-  let downProps = {};
-  if (isTouchDevice) {
-    downProps = {
-      onTouchStart: onDownMouseDown,
-      onTouchEnd: onDownMouseUp,
-    };
-  } else {
-    downProps = {
-      onMouseDown: onDownMouseDown,
-      onMouseUp: onDownMouseUp,
-    };
-  }
+  const moveDown = () => tetris.current?.moveDown();
 
   return (
     <div className="container">
       <canvas id="tetris" style={{ transform: `scale(${scale})` }}></canvas>
       <section>
         <div
-          className={classnames("fast-move", { down: dropIsMouseDown })}
-          {...fastMoveProps}
+          className={classnames("fast-move")}
+          onClick={fastMoveDown}
         >
           Drop
         </div>
         <div className="description">
           <div className="up-w">
             <span
-              className={classnames("up", { down: upIsMouseDown })}
-              {...upProps}
+              className={classnames("up")}
+              onClick={rotate}
             >
               Rotation
             </span>
           </div>
           <div className="left-w">
             <span
-              className={classnames("move-left", { down: leftIsMouseDown })}
-              {...leftProps}
+              className={classnames("move-left")}
+              onClick={moveLeft}
             >
               Left
             </span>
           </div>
           <div className="right-w">
             <span
-              className={classnames("move-right", { down: rightIsMouseDown })}
-              {...rightProps}
+              className={classnames("move-right")}
+              onClick={moveRight}
             >
               Right
             </span>
           </div>
           <div className="down-w">
             <span
-              className={classnames("move-down", { down: downIsMouseDown })}
-              {...downProps}
+              className={classnames("move-down")}
+              onClick={moveDown}
             >
               Down
             </span>
