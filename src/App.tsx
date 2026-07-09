@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.scss";
 import classnames from "classnames";
-import Tetris from "@/utils/tetris.js";
+import Tetris from "@/utils/tetris";
 
 function App() {
   const [scale, setScale] = useState(1);
