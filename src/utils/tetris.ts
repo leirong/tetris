@@ -1,5 +1,5 @@
-import Music, { AudioType } from './music'
-import { Shape, TShape, SShape, ZShape, OShape, IShape, LShape, JShape } from './shapes'
+import Music, { type AudioType } from './music'
+import { type Shape, TShape, SShape, ZShape, OShape, IShape, LShape, JShape } from './shapes'
 
 /** 俄罗斯方块游戏主类，负责渲染、方块控制与游戏逻辑 */
 class Tetris {

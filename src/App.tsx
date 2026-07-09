@@ -5,7 +5,7 @@ import Tetris from '@/utils/tetris'
 
 function App() {
   const [scale, setScale] = useState(1)
-  const tetris = useRef<Tetris>()
+  const tetris = useRef<Tetris | null>(null)
   useEffect(() => {
     tetris.current = new Tetris('tetris')
     window.addEventListener('resize', () => {
