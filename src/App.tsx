@@ -1,19 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.scss'
-import classnames from 'classnames'
 import Tetris, { type GameInfo } from '@/utils/tetris'
 
 function App() {
   const [scale, setScale] = useState(1)
   const [info, setInfo] = useState<GameInfo>({ score: 0, level: 1, lines: 0 })
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const tetris = useRef<Tetris | null>(null)
 
   useEffect(() => {
-    tetris.current = new Tetris('tetris', setInfo)
+    if (!canvasRef.current) return
+
+    tetris.current = new Tetris(canvasRef.current, setInfo)
     const onResize = () => {
       const width = document.body.clientWidth
       setScale(width <= 200 ? width / 200 : 1)
     }
+    onResize()
     window.addEventListener('resize', onResize)
     return () => {
       window.removeEventListener('resize', onResize)
@@ -34,31 +37,31 @@ function App() {
         <span>Level: {info.level}</span>
         <span>Lines: {info.lines}</span>
       </div>
-      <canvas id='tetris' style={{ transform: `scale(${scale})` }}></canvas>
+      <canvas ref={canvasRef} style={{ transform: `scale(${scale})` }}></canvas>
       <section>
-        <div className={classnames('fast-move')} onClick={fastMoveDown}>
+        <button className='fast-move' type='button' onClick={fastMoveDown}>
           Drop
-        </div>
+        </button>
         <div className='description'>
           <div className='up-w'>
-            <span className={classnames('up')} onClick={rotate}>
+            <button className='up' type='button' onClick={rotate}>
               Rotation
-            </span>
+            </button>
           </div>
           <div className='left-w'>
-            <span className={classnames('move-left')} onClick={moveLeft}>
+            <button className='move-left' type='button' onClick={moveLeft}>
               Left
-            </span>
+            </button>
           </div>
           <div className='right-w'>
-            <span className={classnames('move-right')} onClick={moveRight}>
+            <button className='move-right' type='button' onClick={moveRight}>
               Right
-            </span>
+            </button>
           </div>
           <div className='down-w'>
-            <span className={classnames('move-down')} onClick={moveDown}>
+            <button className='move-down' type='button' onClick={moveDown}>
               Down
-            </span>
+            </button>
           </div>
         </div>
       </section>

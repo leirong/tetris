@@ -8,9 +8,14 @@
 
 /** 圆形按钮(3D 凸起效果)，Drop 与方向键共用 */
 @mixin circle-button($size) {
+  appearance: none;
   background: #5a65f1;
+  color: #000;
+  cursor: pointer;
   display: block;
+  font: inherit;
   position: relative;
+  padding: 0;
   border: 1px solid #000;
   border-radius: 50%;
   box-shadow: 0 3px 3px rgba(0, 0, 0, 0.2);
@@ -18,6 +23,7 @@
   height: $size;
   text-align: center;
   line-height: $size;
+  -webkit-tap-highlight-color: transparent;
 
   &::before {
     content: '';
@@ -29,6 +35,7 @@
     left: 0;
     border-radius: 50%;
     box-shadow: inset 0 5px 10px hsla(0, 0%, 100%, 0.8);
+    pointer-events: none;
   }
 
   &::after {
@@ -41,6 +48,7 @@
     left: 0;
     border-radius: 50%;
     box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
   }
 
   &:active::before {

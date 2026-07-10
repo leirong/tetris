@@ -1,5 +1,5 @@
 import Music from './music'
-import { SHAPES } from './shapes'
+import { SHAPES, type Cell } from './shapes'
 
 const ROWS = 20
 const COLS = 10
@@ -14,14 +14,26 @@ export interface GameInfo {
   lines: number
 }
 
+type Grid = boolean[][]
+
+interface Piece {
+  cells: Cell[]
+  row: number
+  col: number
+}
+
+const createGrid = (): Grid => Array.from({ length: ROWS }, () => Array(COLS).fill(false))
+
+const cloneCells = (cells: readonly Cell[]): Cell[] => cells.map(([x, y]) => [x, y])
+
 /** 俄罗斯方块游戏主类，负责渲染、方块控制与游戏逻辑 */
 class Tetris {
   /** 画布 2D 绘图上下文 */
   private ctx: CanvasRenderingContext2D
-  /** 静态方块矩阵，记录已落定的格子(1 有块, 0 空) */
-  private blocks: number[][] = []
+  /** 棋盘占用矩阵，记录已落定的格子(true 有块, false 空) */
+  private grid: Grid = []
   /** 当前下落方块(局部坐标 + 棋盘偏移) */
-  private current = { cells: [] as number[][], row: 0, col: SPAWN_COL }
+  private current: Piece = { cells: [], row: 0, col: SPAWN_COL }
   /** 分数 */
   private score = 0
   /** 等级 */
@@ -42,24 +54,25 @@ class Tetris {
   private onUpdate?: (info: GameInfo) => void
 
   /**
-   * @param element 画布元素的 id
+   * @param canvas 画布元素
    * @param onUpdate 计分/等级变化回调
    */
-  constructor(element: string, onUpdate?: (info: GameInfo) => void) {
-    const canvas = document.getElementById(element) as HTMLCanvasElement
+  constructor(canvas: HTMLCanvasElement, onUpdate?: (info: GameInfo) => void) {
     canvas.width = COLS * BLOCK
     canvas.height = ROWS * BLOCK
-    this.ctx = canvas.getContext('2d')!
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas 2D context is unavailable')
+    this.ctx = ctx
     this.onUpdate = onUpdate
     this.init()
     document.addEventListener('keydown', this.keydown)
-    document.addEventListener('click', this.onFirstClick)
+    document.addEventListener('click', this.onFirstClick, { once: true })
   }
 
   /** 初始化/重置游戏状态并开始动画循环 */
   init() {
     cancelAnimationFrame(this.rafId)
-    this.blocks = Array.from({ length: ROWS }, () => Array(COLS).fill(0))
+    this.grid = createGrid()
     this.score = 0
     this.level = 1
     this.lines = 0
@@ -110,8 +123,8 @@ class Tetris {
     } else {
       this.interval += time - this.lastTime
       this.lastTime = time
-      if (this.interval > this.speed) {
-        this.interval = 0
+      if (this.interval >= this.speed) {
+        this.interval -= this.speed
         this.step()
       }
     }
@@ -120,7 +133,7 @@ class Tetris {
 
   /** 自动下落一格(静音)，到底则落定并生成新方块 */
   private step() {
-    if (this.collides(this.current.cells, this.current.row + 1, this.current.col)) {
+    if (this.isColliding(this.current.cells, this.current.row + 1, this.current.col)) {
       this.lock()
       return
     }
@@ -132,11 +145,11 @@ class Tetris {
    * 通用碰撞检测：给定形状与位置，检查是否越界或与已落定方块重叠
    * @returns 碰撞返回 true
    */
-  private collides(cells: number[][], row: number, col: number): boolean {
+  private isColliding(cells: readonly Cell[], row: number, col: number): boolean {
     for (const [x, y] of cells) {
       const r = row + y
       const c = col + x
-      if (r < 0 || r >= ROWS || c < 0 || c >= COLS || this.blocks[r][c]) return true
+      if (r < 0 || r >= ROWS || c < 0 || c >= COLS || this.grid[r][c]) return true
     }
     return false
   }
@@ -144,7 +157,7 @@ class Tetris {
   /** 当前方块向下还能移动的最大格数 */
   private dropDistance(): number {
     let d = 0
-    while (!this.collides(this.current.cells, this.current.row + d + 1, this.current.col)) {
+    while (!this.isColliding(this.current.cells, this.current.row + d + 1, this.current.col)) {
       d++
     }
     return d
@@ -152,36 +165,35 @@ class Tetris {
 
   /** 向左移动一格(触及左边界或有阻挡时不移动) */
   moveLeft() {
-    if (this.collides(this.current.cells, this.current.row, this.current.col - 1)) return
-    this.current.col--
-    this.render()
-    this.music?.play('move')
+    this.tryMove(0, -1)
   }
 
   /** 向右移动一格(触及右边界或有阻挡时不移动) */
   moveRight() {
-    if (this.collides(this.current.cells, this.current.row, this.current.col + 1)) return
-    this.current.col++
-    this.render()
-    this.music?.play('move')
+    this.tryMove(0, 1)
   }
 
   /** 向下移动一格(手动，播放音效)，到底则落定 */
   moveDown() {
-    if (this.collides(this.current.cells, this.current.row + 1, this.current.col)) {
-      this.lock()
-      return
-    }
-    this.current.row++
+    if (!this.tryMove(1, 0)) this.lock()
+  }
+
+  /** 尝试移动当前方块，成功时重绘并播放移动音效 */
+  private tryMove(rowDelta: number, colDelta: number): boolean {
+    const { cells, row, col } = this.current
+    if (this.isColliding(cells, row + rowDelta, col + colDelta)) return false
+    this.current.row += rowDelta
+    this.current.col += colDelta
     this.render()
     this.music?.play('move')
+    return true
   }
 
   /** 逆时针旋转 90 度(碰撞则不生效) */
   rotate() {
     const max = Math.max(...this.current.cells.flatMap(([x, y]) => [x, y]))
-    const rotated = this.current.cells.map(([x, y]) => [y, max - x])
-    if (this.collides(rotated, this.current.row, this.current.col)) return
+    const rotated: Cell[] = this.current.cells.map(([x, y]) => [y, max - x])
+    if (this.isColliding(rotated, this.current.row, this.current.col)) return
     this.current.cells = rotated
     this.render()
     this.music?.play('rotate')
@@ -194,10 +206,10 @@ class Tetris {
     this.music?.play('fastMove')
   }
 
-  /** 落定当前方块：写入 blocks → 消行 → 生成新方块 */
+  /** 落定当前方块：写入 grid → 消行 → 生成新方块 */
   private lock() {
     for (const [x, y] of this.current.cells) {
-      this.blocks[this.current.row + y][this.current.col + x] = 1
+      this.grid[this.current.row + y][this.current.col + x] = true
     }
     this.clearLines()
     this.spawn()
@@ -206,12 +218,12 @@ class Tetris {
 
   /** 检测并消除已填满的整行，上方方块下移，并计分/升级/加速 */
   private clearLines() {
-    const remaining = this.blocks.filter((row) => !row.every((c) => c === 1))
+    const remaining = this.grid.filter((row) => !row.every(Boolean))
     const count = ROWS - remaining.length
     if (count === 0) return
     // 顶部补空行
-    while (remaining.length < ROWS) remaining.unshift(Array(COLS).fill(0))
-    this.blocks = remaining
+    while (remaining.length < ROWS) remaining.unshift(Array(COLS).fill(false))
+    this.grid = remaining
     this.lines += count
     this.score += [0, 40, 100, 300, 1200][count] * this.level
     this.level = Math.floor(this.lines / 10) + 1
@@ -222,9 +234,9 @@ class Tetris {
 
   /** 随机生成新方块，若出生即碰撞则游戏结束 */
   private spawn() {
-    const cells = SHAPES[Math.floor(Math.random() * SHAPES.length)].map((c) => [...c])
+    const cells = cloneCells(SHAPES[Math.floor(Math.random() * SHAPES.length)])
     this.current = { cells, row: 0, col: SPAWN_COL }
-    if (this.collides(this.current.cells, this.current.row, this.current.col)) {
+    if (this.isColliding(this.current.cells, this.current.row, this.current.col)) {
       this.gameOver()
     }
   }
@@ -250,7 +262,7 @@ class Tetris {
     // 网格 + 已落定方块
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        this.drawCell(c, r, this.blocks[r][c] ? '#000' : '#879372')
+        this.drawCell(c, r, this.grid[r][c] ? '#000' : '#879372')
       }
     }
     // 落点预览(仅当还能下落时)
@@ -284,6 +296,7 @@ class Tetris {
   /** 销毁：取消动画循环并移除事件监听(供 React cleanup 调用) */
   destroy() {
     cancelAnimationFrame(this.rafId)
+    this.music?.destroy()
     document.removeEventListener('keydown', this.keydown)
     document.removeEventListener('click', this.onFirstClick)
   }
