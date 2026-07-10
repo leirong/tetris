@@ -4,6 +4,7 @@ import { SHAPES, type Cell } from './shapes'
 const ROWS = 20
 const COLS = 10
 const BLOCK = 20
+const PREVIEW_SIZE = 4
 /** 新方块出生列(居中) */
 const SPAWN_COL = 3
 
@@ -12,6 +13,7 @@ export interface GameInfo {
   score: number
   level: number
   lines: number
+  paused: boolean
 }
 
 type Grid = boolean[][]
@@ -30,16 +32,22 @@ const cloneCells = (cells: readonly Cell[]): Cell[] => cells.map(([x, y]) => [x,
 class Tetris {
   /** 画布 2D 绘图上下文 */
   private ctx: CanvasRenderingContext2D
+  /** 下一个方块预览画布 2D 绘图上下文 */
+  private nextCtx?: CanvasRenderingContext2D
   /** 棋盘占用矩阵，记录已落定的格子(true 有块, false 空) */
   private grid: Grid = []
   /** 当前下落方块(局部坐标 + 棋盘偏移) */
   private current: Piece = { cells: [], row: 0, col: SPAWN_COL }
+  /** 下一个即将出现的方块 */
+  private nextCells: Cell[] = []
   /** 分数 */
   private score = 0
   /** 等级 */
   private level = 1
   /** 已消行数 */
   private lines = 0
+  /** 是否暂停 */
+  private paused = false
   /** 自动下落间隔(毫秒) */
   private speed = 1500
   /** rAF 句柄(用于取消动画循环) */
@@ -55,14 +63,26 @@ class Tetris {
 
   /**
    * @param canvas 画布元素
+   * @param nextCanvas 下一个方块预览画布元素
    * @param onUpdate 计分/等级变化回调
    */
-  constructor(canvas: HTMLCanvasElement, onUpdate?: (info: GameInfo) => void) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    nextCanvas?: HTMLCanvasElement | null,
+    onUpdate?: (info: GameInfo) => void,
+  ) {
     canvas.width = COLS * BLOCK
     canvas.height = ROWS * BLOCK
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('Canvas 2D context is unavailable')
     this.ctx = ctx
+    if (nextCanvas) {
+      nextCanvas.width = PREVIEW_SIZE * BLOCK
+      nextCanvas.height = PREVIEW_SIZE * BLOCK
+      const nextCtx = nextCanvas.getContext('2d')
+      if (!nextCtx) throw new Error('Preview canvas 2D context is unavailable')
+      this.nextCtx = nextCtx
+    }
     this.onUpdate = onUpdate
     this.init()
     document.addEventListener('keydown', this.keydown)
@@ -77,11 +97,14 @@ class Tetris {
     this.level = 1
     this.lines = 0
     this.speed = 1500
+    this.paused = false
     this.lastTime = 0
     this.interval = 0
-    this.emit()
+    this.nextCells = this.randomCells()
     this.spawn()
+    this.emit()
     this.render()
+    this.renderNext()
     this.rafId = requestAnimationFrame(this.animate)
   }
 
@@ -109,6 +132,10 @@ class Tetris {
       case ' ':
         this.fastMoveDown()
         break
+      case 'p':
+      case 'P':
+        this.togglePause()
+        break
       default:
         return
     }
@@ -117,6 +144,12 @@ class Tetris {
 
   /** 动画循环，按 speed 间隔自动让方块下落一格 */
   private animate = (time = 0) => {
+    if (this.paused) {
+      this.lastTime = time
+      this.rafId = requestAnimationFrame(this.animate)
+      return
+    }
+
     // 首帧只记录时间，不触发下落
     if (this.lastTime === 0) {
       this.lastTime = time
@@ -165,16 +198,19 @@ class Tetris {
 
   /** 向左移动一格(触及左边界或有阻挡时不移动) */
   moveLeft() {
+    if (this.paused) return
     this.tryMove(0, -1)
   }
 
   /** 向右移动一格(触及右边界或有阻挡时不移动) */
   moveRight() {
+    if (this.paused) return
     this.tryMove(0, 1)
   }
 
   /** 向下移动一格(手动，播放音效)，到底则落定 */
   moveDown() {
+    if (this.paused) return
     if (!this.tryMove(1, 0)) this.lock()
   }
 
@@ -191,6 +227,7 @@ class Tetris {
 
   /** 逆时针旋转 90 度(碰撞则不生效) */
   rotate() {
+    if (this.paused) return
     const max = Math.max(...this.current.cells.flatMap(([x, y]) => [x, y]))
     const rotated: Cell[] = this.current.cells.map(([x, y]) => [y, max - x])
     if (this.isColliding(rotated, this.current.row, this.current.col)) return
@@ -201,9 +238,19 @@ class Tetris {
 
   /** 快速下落：直接落到底部并生成新方块 */
   fastMoveDown() {
+    if (this.paused) return
     this.current.row += this.dropDistance()
     this.lock()
     this.music?.play('fastMove')
+  }
+
+  /** 切换暂停/继续状态 */
+  togglePause() {
+    this.paused = !this.paused
+    this.interval = 0
+    this.lastTime = 0
+    this.emit()
+    this.render()
   }
 
   /** 落定当前方块：写入 grid → 消行 → 生成新方块 */
@@ -234,8 +281,9 @@ class Tetris {
 
   /** 随机生成新方块，若出生即碰撞则游戏结束 */
   private spawn() {
-    const cells = cloneCells(SHAPES[Math.floor(Math.random() * SHAPES.length)])
-    this.current = { cells, row: 0, col: SPAWN_COL }
+    this.current = { cells: cloneCells(this.nextCells), row: 0, col: SPAWN_COL }
+    this.nextCells = this.randomCells()
+    this.renderNext()
     if (this.isColliding(this.current.cells, this.current.row, this.current.col)) {
       this.gameOver()
     }
@@ -251,7 +299,12 @@ class Tetris {
 
   /** 推送计分数据给 React */
   private emit() {
-    this.onUpdate?.({ score: this.score, level: this.level, lines: this.lines })
+    this.onUpdate?.({ score: this.score, level: this.level, lines: this.lines, paused: this.paused })
+  }
+
+  /** 随机复制一个方块形状 */
+  private randomCells(): Cell[] {
+    return cloneCells(SHAPES[Math.floor(Math.random() * SHAPES.length)])
   }
 
   /** 全量重绘：背景 → 已落定方块 → 落点预览 → 当前方块 */
@@ -276,6 +329,40 @@ class Tetris {
     for (const [x, y] of cells) {
       this.drawCell(col + x, row + y, '#000')
     }
+
+    if (this.paused) {
+      this.ctx.fillStyle = '#00000055'
+      this.ctx.fillRect(0, 0, COLS * BLOCK, ROWS * BLOCK)
+      this.ctx.fillStyle = '#9ead86'
+      this.ctx.font = 'bold 24px sans-serif'
+      this.ctx.textAlign = 'center'
+      this.ctx.textBaseline = 'middle'
+      this.ctx.fillText('PAUSED', (COLS * BLOCK) / 2, (ROWS * BLOCK) / 2)
+    }
+  }
+
+  /** 重绘下一个方块预览 */
+  private renderNext() {
+    if (!this.nextCtx) return
+
+    this.nextCtx.fillStyle = '#9ead86'
+    this.nextCtx.fillRect(0, 0, PREVIEW_SIZE * BLOCK, PREVIEW_SIZE * BLOCK)
+    for (let r = 0; r < PREVIEW_SIZE; r++) {
+      for (let c = 0; c < PREVIEW_SIZE; c++) {
+        this.drawPreviewCell(c, r, '#879372')
+      }
+    }
+
+    const maxX = Math.max(...this.nextCells.map(([x]) => x))
+    const maxY = Math.max(...this.nextCells.map(([, y]) => y))
+    const minX = Math.min(...this.nextCells.map(([x]) => x))
+    const minY = Math.min(...this.nextCells.map(([, y]) => y))
+    const offsetCol = (PREVIEW_SIZE - (maxX - minX + 1)) / 2 - minX
+    const offsetRow = (PREVIEW_SIZE - (maxY - minY + 1)) / 2 - minY
+
+    for (const [x, y] of this.nextCells) {
+      this.drawPreviewCell(offsetCol + x, offsetRow + y, '#000')
+    }
   }
 
   /**
@@ -291,6 +378,18 @@ class Tetris {
     this.ctx.strokeRect(x + 2, y + 2, BLOCK - 4, BLOCK - 4)
     this.ctx.fillStyle = color
     this.ctx.fillRect(x + 5, y + 5, BLOCK - 10, BLOCK - 10)
+  }
+
+  /** 绘制预览画布里的单个格子 */
+  private drawPreviewCell(col: number, row: number, color: string) {
+    if (!this.nextCtx) return
+
+    const x = col * BLOCK
+    const y = row * BLOCK
+    this.nextCtx.strokeStyle = color
+    this.nextCtx.strokeRect(x + 2, y + 2, BLOCK - 4, BLOCK - 4)
+    this.nextCtx.fillStyle = color
+    this.nextCtx.fillRect(x + 5, y + 5, BLOCK - 10, BLOCK - 10)
   }
 
   /** 销毁：取消动画循环并移除事件监听(供 React cleanup 调用) */

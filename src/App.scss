@@ -79,8 +79,37 @@
     margin-bottom: 10px;
   }
 
-  canvas {
-    margin-left: calc((100% - 200px) / 2);
+  .game-area {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 24px;
+    min-height: 400px;
+  }
+
+  .board-canvas {
+    transform-origin: top center;
+  }
+
+  .preview-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    min-width: 96px;
+    padding-top: 4px;
+    font-size: 18px;
+    font-weight: bold;
+  }
+
+  .next-canvas {
+    width: 80px;
+    height: 80px;
+  }
+
+  .pause {
+    @include circle-button(80px);
+    font-size: 14px;
   }
 
   section {
@@ -155,6 +184,28 @@
 
     .scoreboard {
       font-size: 4vw;
+    }
+
+    .game-area {
+      gap: mpx2vw(24);
+    }
+
+    .preview-panel {
+      min-width: mpx2vw(96);
+      gap: mpx2vw(12);
+      font-size: 16px;
+    }
+
+    .next-canvas {
+      width: mpx2vw(80);
+      height: mpx2vw(80);
+    }
+
+    .pause {
+      width: mpx2vw(80);
+      height: mpx2vw(80);
+      line-height: mpx2vw(80);
+      font-size: 12px;
     }
 
     section {
