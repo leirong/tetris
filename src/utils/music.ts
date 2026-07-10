@@ -1,5 +1,6 @@
 export type AudioType = 'gameStart' | 'gameOver' | 'clear' | 'move' | 'fastMove' | 'rotate'
 
+/** 每种音效在 music.mp3 中的时间切片 [offset, start, duration] */
 type AudioInterval = [offset: number, start: number, duration: number]
 
 class Music {
@@ -15,44 +16,21 @@ class Music {
   }
 
   constructor() {
-    const w = window as typeof window & {
-      webkitAudioContext?: typeof AudioContext
-      mozAudioContext?: typeof AudioContext
-      msAudioContext?: typeof AudioContext
-      oAudioContext?: typeof AudioContext
-    }
-    const AudioContextClass =
-      window.AudioContext || w.webkitAudioContext || w.mozAudioContext || w.msAudioContext || w.oAudioContext
-    this.audioContext = new AudioContextClass()
+    this.audioContext = new AudioContext()
     fetch('./music.mp3')
       .then((response) => response.arrayBuffer())
-      .then((arrayBuffer) => {
-        this.audioContext.decodeAudioData(arrayBuffer, (buffer) => {
-          this.buffer = buffer
-        })
+      .then((arrayBuffer) => this.audioContext.decodeAudioData(arrayBuffer))
+      .then((buffer) => {
+        this.buffer = buffer
       })
   }
 
   play(type: AudioType) {
-    const v = this.audioInterval[type]
-    if (!v) return
-    this.getSource().start(v[0], v[1], v[2])
-  }
-
-  getType(): Record<AudioType, AudioType> {
-    return (Object.keys(this.audioInterval) as AudioType[]).reduce(
-      (sum, cur) => {
-        return { ...sum, [cur]: cur }
-      },
-      {} as Record<AudioType, AudioType>,
-    )
-  }
-
-  getSource(): AudioBufferSourceNode {
+    const [offset, start, duration] = this.audioInterval[type]
     const source = this.audioContext.createBufferSource()
     source.buffer = this.buffer
     source.connect(this.audioContext.destination)
-    return source
+    source.start(offset, start, duration)
   }
 }
 
